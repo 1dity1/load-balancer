@@ -1,5 +1,6 @@
 #include "../include/loadbalancer.h"
 #include "../include/healthchecker.h"
+#include "../include/stats.h"
 #include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -41,10 +42,10 @@ void handleClient(int client_sock, LoadBalancer& lb) {
         return;
     }
 
-    std::cout << "[->] Forwarding " << client_ip 
-              << " to " << server->host 
+    std::cout << "[->] Forwarding " << client_ip
+              << " to " << server->host
               << ":" << server->port << std::endl;
-    
+
     forwardRequest(server, buffer, bytes);
     close(client_sock);
 }
@@ -61,6 +62,9 @@ int main() {
     HealthChecker hc(lb, 5);
     hc.start();
 
+    StatsServer stats(lb, 9090);
+    stats.start();
+
     int server_sock = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
     setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -75,13 +79,14 @@ int main() {
 
     std::cout << "[*] Load Balancer running on port " << PORT << std::endl;
     std::cout << "[*] Algorithm: Consistent Hashing with Virtual Nodes" << std::endl;
-    std::cout << "[*] Health Checker running every 5s\n" << std::endl;
+    std::cout << "[*] Health Checker running every 5s" << std::endl;
+    std::cout << "[*] Stats API running on port 9090\n" << std::endl;
 
     while (true) {
         sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
         int client_sock = accept(server_sock, (sockaddr*)&client_addr, &client_len);
-        
+
         if (client_sock < 0) continue;
 
         std::thread(handleClient, client_sock, std::ref(lb)).detach();

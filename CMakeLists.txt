@@ -9,6 +9,7 @@ add_executable(load_balancer
     src/server.cpp
     src/healthchecker.cpp
     src/consistenthash.cpp
+    src/stats.cpp
 )
 target_compile_options(load_balancer PRIVATE -Wall -Wextra -O2)
 target_link_libraries(load_balancer pthread)
