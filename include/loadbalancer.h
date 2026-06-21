@@ -1,26 +1,30 @@
-﻿#pragma once
+#pragma once
 #include "server.h"
+#include "consistenthash.h"
 #include <vector>
+#include <mutex>
 #include <atomic>
-#include <thread>
+
+enum class Algorithm {
+    ROUND_ROBIN,
+    CONSISTENT_HASHING
+};
 
 class LoadBalancer {
 public:
-    LoadBalancer(int port, std::vector<Server> backends);
-    ~LoadBalancer();
-    void run();
-    void stop();
+    LoadBalancer(Algorithm algo = Algorithm::ROUND_ROBIN);
+    void addServer(const std::string& ip, int port);
+    Server* getNextServer(const std::string& client_ip = "");
+    std::vector<Server>& getServers();
+    void printServers();
 
 private:
-    int listen_port_;
-    std::vector<Server> backends_;
-    std::atomic<size_t> current_backend_;
-    std::atomic<bool> running_;
-    int listen_fd_;
+    std::vector<Server> servers;
+    std::atomic<int> current_index;
+    std::mutex mtx;
+    Algorithm algo;
+    ConsistentHash ch;
 
-    Server& getNextBackend();
-    void handleClient(int client_fd);
-    void forwardTraffic(int client_fd, int backend_fd);
-    bool connectToBackend(const Server& server, int& backend_fd);
-    void healthCheck();
+    Server* roundRobin();
+    Server* consistentHash(const std::string& client_ip);
 };
