@@ -1,1 +1,3 @@
 build/
+dashboard/monitor/node_modules/
+dashboard/monitor/build/
